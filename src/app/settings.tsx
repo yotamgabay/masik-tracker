@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { Btn, Card, H, Muted, NameModal, Screen, confirm, notify } from '../components/ui';
 import { C } from '../components/theme';
+import { aiErrorMessage, checkApiKey } from '../lib/ai';
+import { loadApiKey, saveApiKey } from '../lib/aiKey';
 import { exportExcel } from '../lib/excel';
 import { pickTextFile, shareFile } from '../lib/files';
 import { todayISO } from '../lib/format';
@@ -13,6 +15,20 @@ type Kind = 'varieties' | 'plots';
 export default function Settings() {
   const { data, addNamed, renameNamed, setArchived, deleteNamed, replaceAll } = useData();
   const [modal, setModal] = useState<null | { kind: Kind; item?: Named }>(null);
+  const [apiKey, setApiKey] = useState(loadApiKey);
+  const [keyStatus, setKeyStatus] = useState<string>(loadApiKey() ? 'מפתח שמור' : '');
+
+  const saveKey = async () => {
+    saveApiKey(apiKey);
+    if (!apiKey.trim()) return setKeyStatus('המפתח נמחק');
+    setKeyStatus('בודק…');
+    try {
+      await checkApiKey(apiKey.trim());
+      setKeyStatus('✅ המפתח עובד, העוזר מוכן');
+    } catch (e) {
+      setKeyStatus(`⚠️ ${aiErrorMessage(e)}`);
+    }
+  };
 
   const list = (kind: Kind, title: string, addTitle: string) => (
     <Card>
@@ -70,6 +86,23 @@ export default function Settings() {
         <Btn title="📤 שלח קובץ גיבוי" onPress={backup} />
         <Btn title="📥 שחזר מקובץ גיבוי" variant="secondary" onPress={restore} />
         <Btn title="📊 ייצוא כל המסיקים לאקסל" variant="secondary" onPress={() => exportExcel(data).catch((e) => notify('הייצוא נכשל', String(e)))} />
+      </Card>
+
+      <Card>
+        <H>🤖 העוזר (בינה מלאכותית)</H>
+        <Muted>העוזר משתמש ב-Claude ומשלמים לפי שימוש (שבריר סנט לשאלה). מדביקים כאן פעם אחת את המפתח מ-console.anthropic.com. המפתח נשמר רק בטלפון ולא נכנס לקובץ הגיבוי.</Muted>
+        <TextInput
+          value={apiKey}
+          onChangeText={setApiKey}
+          placeholder="sk-ant-..."
+          placeholderTextColor="#A9AA9C"
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          style={{ borderWidth: 1.5, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: C.text, backgroundColor: '#FDFDFB', textAlign: 'left', writingDirection: 'ltr' }}
+        />
+        <Btn title="💾 שמור ובדוק" variant="secondary" onPress={saveKey} />
+        {keyStatus ? <Muted>{keyStatus}</Muted> : null}
       </Card>
 
       <NameModal

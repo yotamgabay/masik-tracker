@@ -24,6 +24,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: '🫒 המסיקים שלי' }} />
         <Stack.Screen name="stats" options={{ title: 'סטטיסטיקות' }} />
         <Stack.Screen name="settings" options={{ title: 'הגדרות' }} />
+        <Stack.Screen name="chat" options={{ title: '💬 העוזר של המסיק' }} />
       </Stack>
     </DataProvider>
   );

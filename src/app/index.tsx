@@ -47,6 +47,7 @@ export default function Home() {
         );
       })}
 
+      <Btn title="💬 שאל את העוזר" variant="secondary" onPress={() => router.push('/chat')} />
       <Row>
         <Btn title="📊 סטטיסטיקות" variant="secondary" style={{ flex: 1 }} onPress={() => router.push('/stats')} />
         <Btn title="⚙️ הגדרות" variant="secondary" style={{ flex: 1 }} onPress={() => router.push('/settings')} />

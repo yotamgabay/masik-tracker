@@ -3,6 +3,7 @@ import {
   Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { C, R } from './theme';
 
 /** רכיבים בתוך Row מתחלקים לעמודות; מחוץ ל-Row הם ברוחב מלא */
@@ -10,8 +11,10 @@ const InRow = createContext(false);
 const cell = { flexGrow: 1, flexBasis: 130 } as const;
 
 export function Screen({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
+  const headerHeight = useHeaderHeight();
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    // באנדרואיד (edge-to-edge) המסך לא מתכווץ לבד כשהמקלדת נפתחת, לכן padding בשתי הפלטפורמות
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <ScrollView contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
