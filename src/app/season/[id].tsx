@@ -47,7 +47,9 @@ export default function SeasonScreen() {
       </Row>
       {season.pricePerKg == null && season.pricePerTank == null ? (
         <Muted>💡 כדאי למלא את מחירי בית הבד ב"מחירים ושם", כדי שהתשלום יחושב לבד.</Muted>
-      ) : null}
+      ) : (
+        <Muted>🏭 מחירי בית הבד: {fmt(season.pricePerKg, 2)} ₪ לק״ג זיתים · {fmt(season.pricePerTank, 2)} ₪ למיכל</Muted>
+      )}
 
       <H>ימי מסיק ({entries.length})</H>
       {entries.length === 0 ? <Muted>עוד לא נוספו ימי מסיק. לחץ על "יום מסיק חדש" למטה.</Muted> : null}

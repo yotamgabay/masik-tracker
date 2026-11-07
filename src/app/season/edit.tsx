@@ -38,10 +38,10 @@ export default function SeasonEdit() {
       </Card>
       <Card>
         <H>🏭 מחירי בית הבד</H>
-        <Muted>ממלאים פעם אחת לכל המסיק. ככה התשלום לבית הבד יחושב לבד בכל יום.</Muted>
+        <Muted>ממלאים פעם אחת לכל המסיק, לפי מה שבית הבד גובה. ככה התשלום לבית הבד יחושב לבד בכל יום. אפשר לשנות בכל רגע.</Muted>
         <Row>
-          <Field label="עלות לק״ג זיתים" value={perKg} onChange={setPerKg} suffix="₪" placeholder="0" />
-          <Field label="עלות למיכל" value={perTank} onChange={setPerTank} suffix="₪" placeholder="0" />
+          <Field label="עלות לק״ג זיתים" value={perKg} onChange={setPerKg} suffix="₪" placeholder="למשל 0.9" />
+          <Field label="עלות למיכל" value={perTank} onChange={setPerTank} suffix="₪" placeholder="למשל 15" />
         </Row>
       </Card>
       {existing ? (

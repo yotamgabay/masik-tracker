@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Btn, Card, Chips, H, Muted, Row, Screen, Stat, StatGrid, notify } from '../components/ui';
 import { C } from '../components/theme';
+import { BarChart, LineChart, seriesColor, type LineSeries } from '../components/charts';
 import { sortEntries, summarize, type Totals } from '../lib/calc';
 import { exportExcel } from '../lib/excel';
 import { fmt, fmtDate, fmtMoney, fmtPct, weekday } from '../lib/format';
@@ -19,12 +20,23 @@ const GROUPS: { id: GroupBy; name: string }[] = [
 
 type Group = { key: string; title: string; t: Totals };
 
+type Metric = 'pct' | 'kg' | 'liters' | 'kgPerBin' | 'costPerLiter';
+const METRICS: { id: Metric; name: string; get: (t: Totals) => number | null; format: (v: number) => string }[] = [
+  { id: 'pct', name: 'אחוז שמן', get: (t) => t.pct, format: (v) => fmtPct(v) },
+  { id: 'kg', name: 'ק״ג זיתים', get: (t) => t.kg || null, format: (v) => `${fmt(v)} ק״ג` },
+  { id: 'liters', name: 'ליטר שמן', get: (t) => t.liters || null, format: (v) => `${fmt(v)} ל׳` },
+  { id: 'kgPerBin', name: 'ק״ג לדולב', get: (t) => t.kgPerBin, format: (v) => `${fmt(v)} ק״ג` },
+  { id: 'costPerLiter', name: 'עלות לליטר', get: (t) => t.costPerLiter, format: (v) => `${fmt(v, 1)} ₪` },
+];
+
 export default function Stats() {
   const { data } = useData();
   const [seasonId, setSeasonId] = useState<string>(data.seasons.length ? 'all' : 'all');
   const [groupBy, setGroupBy] = useState<GroupBy>('variety');
   const [varietyFilter, setVarietyFilter] = useState<string>('all');
   const [plotFilter, setPlotFilter] = useState<string>('all');
+  const [metric, setMetric] = useState<Metric>('pct');
+  const m = METRICS.find((x) => x.id === metric)!;
 
   const lineFilter =
     varietyFilter === 'all' ? undefined : (l: EntryLine) => l.varietyId === varietyFilter;
@@ -68,6 +80,23 @@ export default function Stats() {
   const pcts = groups.map((g) => g.t.pct).filter((p): p is number => p != null);
   const bestPct = pcts.length > 1 ? Math.max(...pcts) : null;
 
+  // גרף לאורך זמן: קו לכל סוג זית, נקודה לכל יום מסיק
+  const singleSeason = seasonId !== 'all' || data.seasons.length <= 1;
+  const lineSeries: LineSeries[] = singleSeason
+    ? data.varieties
+        .map((v, i) => ({ v, color: seriesColor(i) }))
+        .filter(({ v }) => varietyFilter === 'all' || v.id === varietyFilter)
+        .map(({ v, color }) => {
+          const dates = [...new Set(entries.filter((e) => e.lines.some((l) => l.varietyId === v.id)).map((e) => e.date))];
+          const points = dates
+            .map((d) => ({ d, t: summarize(data, entries.filter((e) => e.date === d), (l) => l.varietyId === v.id) }))
+            .filter((x) => x.t.pct != null)
+            .map((x) => ({ x: x.d, y: x.t.pct!, label: `${weekday(x.d)} ${fmtDate(x.d, false)}` }));
+          return { key: v.id, name: v.name, color, points };
+        })
+        .filter((s) => s.points.length > 0)
+    : [];
+
   const seasonOpts = [{ id: 'all', name: 'כל המסיקים' }, ...data.seasons.map((s) => ({ id: s.id, name: s.name }))];
   const varOpts = [{ id: 'all', name: 'כל הסוגים' }, ...data.varieties.map((v) => ({ id: v.id, name: v.name }))];
   const plotOpts = [{ id: 'all', name: 'כל החלקות' }, ...data.plots.map((p) => ({ id: p.id, name: p.name }))];
@@ -102,6 +131,26 @@ export default function Stats() {
       <H>חלוקה לפי</H>
       <Chips options={GROUPS} selected={[groupBy]} onToggle={setGroupBy} />
 
+      {groups.length > 0 ? (
+        <Card>
+          <H>📊 גרף לפי {GROUPS.find((g) => g.id === groupBy)!.name}</H>
+          <Chips options={METRICS} selected={[metric]} onToggle={setMetric} />
+          <BarChart rows={groups.map((g) => ({ key: g.key, label: g.title, value: m.get(g.t) }))} format={m.format} />
+        </Card>
+      ) : null}
+
+      {total.entries > 0 ? (
+        <Card>
+          <H>📈 אחוז שמן לאורך המסיק</H>
+          {singleSeason ? (
+            <LineChart series={lineSeries} xLabel={(x) => fmtDate(x, false)} format={(v) => `${fmt(v, 1)}%`} />
+          ) : (
+            <Muted>בחר מסיק אחד למעלה כדי לראות איך אחוז השמן השתנה מיום ליום.</Muted>
+          )}
+        </Card>
+      ) : null}
+
+      <H>פירוט</H>
       {groups.map((g) => (
         <Card key={g.key} style={{ gap: 8 }}>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>

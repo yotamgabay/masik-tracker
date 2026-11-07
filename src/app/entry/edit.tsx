@@ -185,8 +185,9 @@ export default function EntryEdit() {
         <Muted>
           {season.pricePerKg != null || season.pricePerTank != null
             ? `לפי ${fmt(season.pricePerKg, 2)} ₪ לק״ג + ${fmt(season.pricePerTank, 2)} ₪ למיכל`
-            : 'לא הוגדרו מחירי בית הבד למסיק – אפשר להזין כאן את הסכום ששולם'}
+            : 'לא הוגדרו מחירי בית הבד למסיק – אפשר להגדיר אותם, או להזין כאן את הסכום ששולם'}
         </Muted>
+        <Btn title="✏️ שינוי מחירי בית הבד" small variant="secondary" onPress={() => router.push(`/season/edit?id=${season.id}`)} />
         <Field
           label="שולם לבית הבד"
           suffix="₪"
