@@ -57,7 +57,10 @@ jobs:
           name: masik-apk
           path: out/*.apk
 
+      # דורש: Settings → Actions → General → Workflow permissions → Read and write.
+      # אם אין הרשאה, ה-APK עדיין זמין להורדה כ-artifact של ההרצה.
       - name: Publish as GitHub release (easy download link for the phone)
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
