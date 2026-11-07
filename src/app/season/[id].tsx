@@ -46,13 +46,13 @@ export default function SeasonScreen() {
         <Btn title="✏️ מחירים ושם" variant="secondary" style={{ flex: 1 }} onPress={() => router.push(`/season/edit?id=${season.id}`)} />
       </Row>
       {season.pricePerKg == null && season.pricePerTank == null ? (
-        <Muted>💡 כדאי למלא את מחירי בית הבד ב"מחירים ושם", כדי שהתשלום יחושב לבד.</Muted>
+        <Muted>💡 כדאי למלא את מחירי בית הבד ב״מחירים ושם״, כדי שהתשלום יחושב לבד.</Muted>
       ) : (
         <Muted>🏭 מחירי בית הבד: {fmt(season.pricePerKg, 2)} ₪ לק״ג זיתים · {fmt(season.pricePerTank, 2)} ₪ למיכל</Muted>
       )}
 
       <H>ימי מסיק ({entries.length})</H>
-      {entries.length === 0 ? <Muted>עוד לא נוספו ימי מסיק. לחץ על "יום מסיק חדש" למטה.</Muted> : null}
+      {entries.length === 0 ? <Muted>עוד לא נוספו ימי מסיק. לחץ על ״יום מסיק חדש״ למטה.</Muted> : null}
       {entries.map((e) => {
         const kg = e.lines.reduce((a, l) => a + (l.kg ?? 0), 0);
         const liters = e.lines.reduce((a, l) => a + (l.liters ?? 0), 0);

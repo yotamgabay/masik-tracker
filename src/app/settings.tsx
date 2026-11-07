@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Btn, Card, H, Muted, NameModal, Row, Screen, confirm, notify } from '../components/ui';
+import { Btn, Card, H, Muted, NameModal, Screen, confirm, notify } from '../components/ui';
 import { C } from '../components/theme';
 import { exportExcel } from '../lib/excel';
 import { pickTextFile, shareFile } from '../lib/files';
@@ -53,7 +53,7 @@ export default function Settings() {
         () => { replaceAll(nd); notify('השחזור הושלם ✅'); },
         'שחזר',
       );
-    } catch (e) {
+    } catch {
       notify('לא הצלחתי לקרוא את הקובץ', 'צריך לבחור קובץ גיבוי (json) שנוצר מהאפליקציה.');
     }
   };

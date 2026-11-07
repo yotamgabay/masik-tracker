@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-/** רכיבים בתוך Row מתחלקים לעמודות; מחוץ ל-Row הם ברוחב מלא */
-const InRow = createContext(false);
-const cell = { flexGrow: 1, flexBasis: 130 } as const;
+import React, { createContext, useContext, useState } from 'react';
 import {
   Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native';
 import { C, R } from './theme';
+
+/** רכיבים בתוך Row מתחלקים לעמודות; מחוץ ל-Row הם ברוחב מלא */
+const InRow = createContext(false);
+const cell = { flexGrow: 1, flexBasis: 130 } as const;
 
 export function Screen({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   return (
@@ -149,10 +149,19 @@ export function StatGrid({ children }: { children: React.ReactNode }) {
 export function NameModal({
   visible, title, initial = '', onClose, onSave,
 }: { visible: boolean; title: string; initial?: string; onClose: () => void; onSave: (name: string) => void }) {
-  const [v, setV] = useState(initial);
-  useEffect(() => { if (visible) setV(initial); }, [visible, initial]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      {/* התוכן נבנה מחדש בכל פתיחה, כך שהשדה מתחיל מהערך ההתחלתי */}
+      {visible ? <NameModalBody title={title} initial={initial} onClose={onClose} onSave={onSave} /> : null}
+    </Modal>
+  );
+}
+
+function NameModalBody({
+  title, initial, onClose, onSave,
+}: { title: string; initial: string; onClose: () => void; onSave: (name: string) => void }) {
+  const [v, setV] = useState(initial);
+  return (
       <View style={s.modalBg}>
         <View style={s.modal}>
           <H>{title}</H>
@@ -163,7 +172,6 @@ export function NameModal({
           </Row>
         </View>
       </View>
-    </Modal>
   );
 }
 
