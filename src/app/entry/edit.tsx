@@ -1,9 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Btn, Card, Chips, Computed, Field, H, Muted, NameModal, Row, Screen, confirm, notify } from '../../components/ui';
+import { Btn, Card, Chips, Computed, Field, H, MoneyLine, Muted, NameModal, Row, Screen, Segmented, confirm, notify } from '../../components/ui';
 import { C } from '../../components/theme';
-import { autoPressCost, autoTanks, kgPerBin, lineTanks, oilPct, workersCost } from '../../lib/calc';
+import { autoPressCost, autoTanks, kgPerBin, lineTanks, oilPct, pressBreakdown, workersCost } from '../../lib/calc';
 import { addDays, fmt, fmtDate, fmtMoney, fmtPct, numToStr, parseNum, todayISO, uid, weekday } from '../../lib/format';
 import { sendToWhatsApp } from '../../lib/share';
 import { nameOf, useData } from '../../lib/store';
@@ -35,6 +35,7 @@ export default function EntryEdit() {
   const [workers, setWorkers] = useState(numToStr(existing?.workers));
   const [costPerWorker, setCostPerWorker] = useState(numToStr(existing ? existing.costPerWorker : data.lastCostPerWorker));
   const [pressPaid, setPressPaid] = useState(numToStr(existing?.pressPaidOverride));
+  const [paidInclVat, setPaidInclVat] = useState<'incl' | 'excl'>(existing?.pressPaidIncludesVat === false ? 'excl' : 'incl');
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [lines, setLines] = useState<LineForm[]>(
     existing?.lines.map((l) => ({
@@ -64,13 +65,15 @@ export default function EntryEdit() {
     costPerWorker: parseNum(costPerWorker),
     lines: lines.map(toLine),
     pressPaidOverride: parseNum(pressPaid),
+    pressPaidIncludesVat: paidInclVat === 'incl',
     notes: notes.trim(),
   });
 
   const draft = build();
   const wc = workersCost(draft);
   const autoPress = autoPressCost(draft, season);
-  const press = draft.pressPaidOverride ?? autoPress;
+  const pb = pressBreakdown(draft, season);
+  const press = pb?.gross ?? null;
   const totalLiters = draft.lines.reduce((a, l) => a + (l.liters ?? 0), 0);
   const totalKg = draft.lines.reduce((a, l) => a + (l.kg ?? 0), 0);
   const totalCost = (wc ?? 0) + (press ?? 0);
@@ -184,7 +187,7 @@ export default function EntryEdit() {
         <H>🏭 בית הבד</H>
         <Muted>
           {season.pricePerKg != null || season.pricePerTank != null
-            ? `לפי ${fmt(season.pricePerKg, 2)} ₪ לק״ג + ${fmt(season.pricePerTank, 2)} ₪ למיכל`
+            ? `לפי ${fmt(season.pricePerKg, 2)} ₪ לק״ג + ${fmt(season.pricePerTank, 2)} ₪ למיכל (${season.pricesIncludeVat ? 'כולל' : 'לפני'} מע״מ)`
             : 'לא הוגדרו מחירי בית הבד למסיק – אפשר להגדיר אותם, או להזין כאן את הסכום ששולם'}
         </Muted>
         <Btn title="✏️ שינוי מחירי בית הבד" small variant="secondary" onPress={() => router.push(`/season/edit?id=${season.id}`)} />
@@ -193,9 +196,24 @@ export default function EntryEdit() {
           suffix="₪"
           value={pressPaid}
           onChange={setPressPaid}
-          placeholder={autoPress != null ? fmt(autoPress) : ''}
-          hint={pressPaid ? 'הוזן ידנית (מחק כדי לחשב לבד)' : autoPress != null ? 'מחושב לבד לפי המחירים' : undefined}
+          placeholder={autoPress != null ? 'מחושב לבד' : 'הזן סכום'}
+          hint={pressPaid ? 'הוזן ידנית (מחק כדי לחשב לבד)' : autoPress != null ? 'מחושב לבד לפי המחירים. אם שילמת סכום אחר – הזן אותו כאן' : undefined}
         />
+        {pressPaid ? (
+          <Segmented
+            options={[{ id: 'incl', name: 'הסכום כולל מע״מ' }, { id: 'excl', name: 'הסכום לפני מע״מ' }]}
+            value={paidInclVat}
+            onChange={setPaidInclVat}
+          />
+        ) : null}
+        {pb ? (
+          <View style={{ backgroundColor: C.primarySoft, borderRadius: 10, padding: 12 }}>
+            <MoneyLine label="לפני מע״מ" value={fmtMoney(pb.net)} />
+            <MoneyLine label={`מע״מ ${fmt(pb.rate, 2)}%`} value={`+ ${fmtMoney(pb.vat)}`} />
+            <View style={{ height: 1, backgroundColor: C.border, marginVertical: 4 }} />
+            <MoneyLine label="🧮 לתשלום (כולל מע״מ)" value={fmtMoney(pb.gross)} bold />
+          </View>
+        ) : null}
       </Card>
 
       {/* סיכום היום */}
@@ -210,7 +228,7 @@ export default function EntryEdit() {
           <Computed label="אחוז שמן" value={fmtPct(totalKg > 0 && totalLiters > 0 ? oilPct(totalKg, totalLiters) : null)} />
         </Row>
         <Row>
-          <Computed label="עלות כוללת" value={fmtMoney(totalCost || null)} />
+          <Computed label="עלות כוללת (כולל מע״מ)" value={fmtMoney(totalCost || null)} />
           <Computed label="עלות לליטר" value={totalCost && totalLiters ? `${fmt(totalCost / totalLiters, 1)} ₪` : '—'} />
         </Row>
       </Card>

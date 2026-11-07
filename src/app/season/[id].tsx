@@ -30,7 +30,7 @@ export default function SeasonScreen() {
         <Stat label="דולבים" value={fmt(t.bins)} />
         <Stat label="ק״ג לדולב" value={fmt(t.kgPerBin)} />
         <Stat label="עלות פועלים" value={fmtMoney(t.workersCost)} />
-        <Stat label="בית הבד" value={fmtMoney(t.pressCost)} />
+        <Stat label="בית הבד (כולל מע״מ)" value={fmtMoney(t.pressCost)} />
         <Stat label="עלות כוללת" value={fmtMoney(t.totalCost)} />
         <Stat label="עלות לליטר" value={t.costPerLiter ? `${fmt(t.costPerLiter, 1)} ₪` : '—'} highlight />
       </StatGrid>
@@ -48,7 +48,10 @@ export default function SeasonScreen() {
       {season.pricePerKg == null && season.pricePerTank == null ? (
         <Muted>💡 כדאי למלא את מחירי בית הבד ב״מחירים ושם״, כדי שהתשלום יחושב לבד.</Muted>
       ) : (
-        <Muted>🏭 מחירי בית הבד: {fmt(season.pricePerKg, 2)} ₪ לק״ג זיתים · {fmt(season.pricePerTank, 2)} ₪ למיכל</Muted>
+        <Muted>
+          🏭 מחירי בית הבד: {fmt(season.pricePerKg, 2)} ₪ לק״ג זיתים · {fmt(season.pricePerTank, 2)} ₪ למיכל ·{' '}
+          {season.pricePerKg != null || season.pricePerTank != null ? (season.pricesIncludeVat ? 'כולל מע״מ' : `+ מע״מ ${fmt(season.vatRate, 2)}%`) : ''}
+        </Muted>
       )}
 
       <H>ימי מסיק ({entries.length})</H>

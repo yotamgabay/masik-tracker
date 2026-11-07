@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { kgPerBin, lineTanks, oilPct, pressCost, sortEntries, summarize, workersCost } from './calc';
+import { kgPerBin, lineTanks, oilPct, pressBreakdown, sortEntries, summarize, workersCost } from './calc';
 import { fmtDate, todayISO } from './format';
 import { nameOf } from './store';
 import type { AppData, Season } from './types';
@@ -19,6 +19,7 @@ export async function exportExcel(data: AppData, season?: Season) {
   const rows: Record<string, unknown>[] = [];
   for (const e of entries) {
     e.lines.forEach((l, i) => {
+      const pb = i === 0 ? pressBreakdown(e, data.seasons.find((s) => s.id === e.seasonId)) : null;
       rows.push({
         'מסיק': sName(e.seasonId),
         'תאריך': fmtDate(e.date),
@@ -34,7 +35,9 @@ export async function exportExcel(data: AppData, season?: Season) {
         'פועלים': i === 0 ? e.workers : null,
         'עלות לפועל': i === 0 ? e.costPerWorker : null,
         'עלות פועלים': i === 0 ? workersCost(e) : null,
-        'שולם לבית הבד': i === 0 ? r0(pressCost(e, data.seasons.find((s) => s.id === e.seasonId))) : null,
+        'בית הבד לפני מע״מ': pb ? r0(pb.net) : null,
+        'מע״מ': pb ? r0(pb.vat) : null,
+        'בית הבד כולל מע״מ': pb ? r0(pb.gross) : null,
         'הערות': i === 0 ? e.notes : '',
       });
     });
@@ -51,8 +54,10 @@ export async function exportExcel(data: AppData, season?: Season) {
     'ק״ג לדולב': r1(t.kgPerBin),
     'ימי עבודה': r1(t.workerDays),
     'עלות פועלים': r0(t.workersCost),
-    'בית הבד': r0(t.pressCost),
-    'עלות כוללת': r0(t.totalCost),
+    'בית הבד לפני מע״מ': r0(t.pressNet),
+    'מע״מ': r0(t.pressVat),
+    'בית הבד כולל מע״מ': r0(t.pressCost),
+    'עלות כוללת (כולל מע״מ)': r0(t.totalCost),
     'עלות לליטר': r1(t.costPerLiter),
   });
 

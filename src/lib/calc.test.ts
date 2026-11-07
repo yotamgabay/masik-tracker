@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { autoTanks, oilPct, summarize, pressCost, kgPerBin } from './calc.ts';
+import { autoTanks, oilPct, summarize, pressCost, pressBreakdown, kgPerBin } from './calc.ts';
 import { fmt, parseNum, addDays } from './format.ts';
 import type { Entry, Season } from './types.ts';
 
-const season: Season = { id: 's', name: 'מסיק 2026', pricePerKg: 0.5, pricePerTank: 10, createdAt: '' };
+const season: Season = { id: 's', name: 'מסיק 2026', pricePerKg: 0.5, pricePerTank: 10, vatRate: 0, pricesIncludeVat: false, createdAt: '' };
 const e1: Entry = {
-  id: 'e1', seasonId: 's', date: '2026-10-20', plotId: 'p12', workers: 4, costPerWorker: 400, notes: '', pressPaidOverride: null,
+  id: 'e1', seasonId: 's', date: '2026-10-20', plotId: 'p12', workers: 4, costPerWorker: 400, notes: '', pressPaidOverride: null, pressPaidIncludesVat: true,
   lines: [
     { varietyId: 'barnea', bins: 10, kg: 4000, liters: 800, tanksOverride: null },
     { varietyId: 'picual', bins: 5, kg: 1000, liters: 200, tanksOverride: 11 },
@@ -31,6 +31,24 @@ test('press cost auto and override', () => {
   // 5000kg*0.5 + (41+11)*10
   assert.equal(pressCost(e1, season), 2500 + 520);
   assert.equal(pressCost(e2, season), 1000);
+});
+
+test('VAT on olive press', () => {
+  const vatSeason = { ...season, vatRate: 18 };
+  // מחירים לפני מע״מ: 3020 + 18%
+  const a = pressBreakdown(e1, vatSeason)!;
+  assert.equal(a.net, 3020);
+  assert.equal(a.gross.toFixed(2), '3563.60');
+  // מחירים כוללים מע״מ
+  const b = pressBreakdown(e1, { ...vatSeason, pricesIncludeVat: true })!;
+  assert.equal(b.gross, 3020);
+  assert.equal(b.net.toFixed(2), (3020 / 1.18).toFixed(2));
+  // סכום ידני כולל מע״מ / לפני מע״מ
+  assert.equal(pressBreakdown(e2, vatSeason)!.gross, 1000);
+  assert.equal(pressBreakdown({ ...e2, pressPaidIncludesVat: false }, vatSeason)!.gross.toFixed(2), '1180.00');
+  const t = summarize({ seasons: [vatSeason] }, [e1]);
+  assert.equal(t.pressCost.toFixed(2), '3563.60');
+  assert.equal(t.totalCost.toFixed(2), (3563.6 + 1600).toFixed(2));
 });
 
 test('summarize totals and per variety cost split', () => {

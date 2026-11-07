@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { loadRaw, saveRaw } from './storage';
 import type { AppData, Entry, Named, Season } from './types';
 import { uid } from './format';
+import { DEFAULT_VAT } from './calc';
 
 const KEY = 'masik-data-v1';
 
@@ -26,8 +27,14 @@ export function normalizeData(raw: unknown): AppData {
     version: 1,
     varieties: Array.isArray(d.varieties) ? d.varieties : [],
     plots: Array.isArray(d.plots) ? d.plots : [],
-    seasons: d.seasons,
-    entries: d.entries.map((e) => ({ ...e, notes: e.notes ?? '', pressPaidOverride: e.pressPaidOverride ?? null, lines: e.lines ?? [] })),
+    seasons: d.seasons.map((s) => ({ ...s, vatRate: s.vatRate ?? DEFAULT_VAT, pricesIncludeVat: s.pricesIncludeVat ?? false })),
+    entries: d.entries.map((e) => ({
+      ...e,
+      notes: e.notes ?? '',
+      pressPaidOverride: e.pressPaidOverride ?? null,
+      pressPaidIncludesVat: e.pressPaidIncludesVat ?? true,
+      lines: e.lines ?? [],
+    })),
     lastCostPerWorker: d.lastCostPerWorker ?? null,
   };
 }

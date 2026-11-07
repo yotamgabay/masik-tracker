@@ -1,4 +1,4 @@
-import { lineTanks, oilPct, summarize, workersCost, pressCost, kgPerBin } from './calc';
+import { lineTanks, oilPct, summarize, workersCost, pressBreakdown, kgPerBin } from './calc';
 import { fmt, fmtDate, fmtMoney, fmtPct, weekday } from './format';
 import { nameOf } from './store';
 import type { AppData, Entry, Season } from './types';
@@ -43,7 +43,10 @@ export function seasonSummaryText(data: AppData, season: Season): string {
     L.push('');
     L.push('💰 *עלויות*');
     if (t.workersCost > 0) L.push(`• פועלים: ${fmtMoney(t.workersCost)} (${fmt(t.workerDays)} ימי עבודה)`);
-    if (t.pressCost > 0) L.push(`• בית הבד: ${fmtMoney(t.pressCost)}`);
+    if (t.pressCost > 0) {
+      L.push(`• בית הבד: ${fmtMoney(t.pressCost)} כולל מע״מ`);
+      L.push(`   (${fmtMoney(t.pressNet)} + מע״מ ${fmtMoney(t.pressVat)})`);
+    }
     L.push(`• סה״כ: ${fmtMoney(t.totalCost)}`);
     if (t.costPerLiter) L.push(`• עלות לליטר שמן: ${fmt(t.costPerLiter, 1)} ₪`);
   }
@@ -65,11 +68,12 @@ export function entrySummaryText(data: AppData, e: Entry): string {
     if (p != null) L.push(`• אחוז שמן: ${fmtPct(p)}`);
   }
   const wc = workersCost(e);
-  const pc = pressCost(e, season);
+  const pb = pressBreakdown(e, season);
+  const pc = pb?.gross;
   if (wc || pc) {
     L.push('');
     if (wc) L.push(`👷 פועלים: ${fmt(e.workers)} × ${fmt(e.costPerWorker)} = ${fmtMoney(wc)}`);
-    if (pc) L.push(`🏭 בית הבד: ${fmtMoney(pc)}`);
+    if (pb && pc) L.push(`🏭 בית הבד: ${fmtMoney(pc)} כולל מע״מ (${fmtMoney(pb.net)} + מע״מ ${fmtMoney(pb.vat)})`);
   }
   if (e.notes) {
     L.push('');

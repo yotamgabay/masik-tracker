@@ -4,6 +4,8 @@ import type { AppData, Entry, EntryLine, Season } from './types';
 export const OIL_DENSITY = 0.916;
 /** מיכל = 18 ק"ג שמן (בערך 20 ליטר) */
 export const TANK_KG = 18;
+/** מע״מ בישראל (ברירת מחדל למסיק חדש) */
+export const DEFAULT_VAT = 18;
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && isFinite(v) ? v : 0);
 const has = (v: number | null | undefined): v is number => typeof v === 'number' && isFinite(v);
@@ -41,8 +43,32 @@ export function autoPressCost(e: Pick<Entry, 'lines'>, season: Season | undefine
   return total;
 }
 
-export const pressCost = (e: Entry, season: Season | undefined) =>
-  has(e.pressPaidOverride) ? e.pressPaidOverride : autoPressCost(e, season);
+export type PressCost = { net: number; vat: number; gross: number; rate: number; manual: boolean };
+
+/** מפרק סכום לפני מע״מ / מע״מ / כולל מע״מ */
+export function splitVat(amount: number, includesVat: boolean, rate: number) {
+  const f = 1 + rate / 100;
+  const net = includesVat ? amount / f : amount;
+  const gross = includesVat ? amount : amount * f;
+  return { net, vat: gross - net, gross };
+}
+
+/** תשלום לבית הבד, עם פירוק מע״מ. ידני (אם הוזן) או מחושב לפי המחירים */
+export function pressBreakdown(
+  e: Pick<Entry, 'lines' | 'pressPaidOverride' | 'pressPaidIncludesVat'>,
+  season: Season | undefined,
+): PressCost | null {
+  const rate = season?.vatRate ?? DEFAULT_VAT;
+  if (has(e.pressPaidOverride)) {
+    return { ...splitVat(e.pressPaidOverride, e.pressPaidIncludesVat, rate), rate, manual: true };
+  }
+  const base = autoPressCost(e, season);
+  if (base == null) return null;
+  return { ...splitVat(base, !!season?.pricesIncludeVat, rate), rate, manual: false };
+}
+
+/** התשלום לבית הבד כולל מע״מ */
+export const pressCost = (e: Entry, season: Season | undefined) => pressBreakdown(e, season)?.gross ?? null;
 
 export type Totals = {
   entries: number;
@@ -54,7 +80,10 @@ export type Totals = {
   tanks: number;
   workerDays: number;
   workersCost: number;
+  /** בית הבד כולל מע״מ */
   pressCost: number;
+  pressNet: number;
+  pressVat: number;
   totalCost: number;
   /** אחוז שמן משוקלל (רק משורות שיש בהן גם ק"ג וגם ליטר) */
   pct: number | null;
@@ -68,7 +97,7 @@ export type Totals = {
 export function emptyTotals(): Totals {
   return {
     entries: 0, days: 0, bins: 0, kg: 0, liters: 0, oilKg: 0, tanks: 0, workerDays: 0,
-    workersCost: 0, pressCost: 0, totalCost: 0, pct: null, kgPerBin: null,
+    workersCost: 0, pressCost: 0, pressNet: 0, pressVat: 0, totalCost: 0, pct: null, kgPerBin: null,
     costPerLiter: null, costPerKg: null, firstDate: null, lastDate: null,
   };
 }
@@ -116,7 +145,12 @@ export function summarize(
     }
     t.workerDays += n(e.workers) * share;
     t.workersCost += n(workersCost(e)) * share;
-    t.pressCost += n(pressCost(e, season)) * share;
+    const pb = pressBreakdown(e, season);
+    if (pb) {
+      t.pressCost += pb.gross * share;
+      t.pressNet += pb.net * share;
+      t.pressVat += pb.vat * share;
+    }
   }
   t.days = days.size;
   t.totalCost = t.workersCost + t.pressCost;

@@ -9,6 +9,10 @@ export type Season = {
   pricePerKg: number | null;
   /** מחיר למיכל שמן בבית הבד (₪) */
   pricePerTank: number | null;
+  /** אחוז מע״מ שמתווסף לבית הבד (למשל 18) */
+  vatRate: number;
+  /** האם המחירים שהוזנו כבר כוללים מע״מ */
+  pricesIncludeVat: boolean;
   createdAt: string;
 };
 
@@ -33,6 +37,8 @@ export type Entry = {
   lines: EntryLine[];
   /** אם ריק – מחושב לפי מחירי בית הבד של המסיק */
   pressPaidOverride: number | null;
+  /** האם הסכום הידני כולל מע״מ */
+  pressPaidIncludesVat: boolean;
   notes: string;
 };
 

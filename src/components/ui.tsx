@@ -133,6 +133,34 @@ export function Chips<T extends string>({
   );
 }
 
+/** בחירה בין שתי אפשרויות (או יותר), כפתורים צמודים */
+export function Segmented<T extends string>({
+  options, value, onChange,
+}: { options: { id: T; name: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <View style={s.seg}>
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <Pressable key={o.id} onPress={() => onChange(o.id)} style={[s.segItem, on && s.segOn]} accessibilityRole="button">
+            <Text style={[s.segText, on && { color: '#fff' }]}>{on ? '✓ ' : ''}{o.name}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** שורת סכום בפירוט (לפני מע״מ / מע״מ / סה״כ) */
+export function MoneyLine({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 }}>
+      <Text style={{ fontSize: bold ? 18 : 16, color: bold ? C.text : C.muted, fontWeight: bold ? '800' : '500' }}>{label}</Text>
+      <Text style={{ fontSize: bold ? 20 : 16, color: C.text, fontWeight: bold ? '800' : '600' }}>{value}</Text>
+    </View>
+  );
+}
+
 export function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <View style={[s.stat, highlight && { backgroundColor: C.accentSoft, borderColor: '#EBD98F' }]}>
@@ -218,6 +246,10 @@ export const s = StyleSheet.create({
   chipOn: { backgroundColor: C.primary },
   chipAdd: { borderStyle: 'dashed' },
   chipText: { fontSize: 17, color: C.primaryDark, fontWeight: '600' },
+  seg: { flexDirection: 'row', borderWidth: 1.5, borderColor: C.primary, borderRadius: 12, overflow: 'hidden' },
+  segItem: { flex: 1, paddingVertical: 11, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: C.primary },
+  segText: { fontSize: 16, fontWeight: '700', color: C.primaryDark, textAlign: 'center' },
   stat: { flexGrow: 1, flexBasis: '45%', backgroundColor: C.card, borderRadius: 12, borderWidth: 1, borderColor: C.border, padding: 12 },
   statValue: { fontSize: 22, fontWeight: '800', color: C.text },
   statLabel: { fontSize: 14, color: C.muted, marginTop: 2 },
