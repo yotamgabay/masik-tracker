@@ -1,8 +1,8 @@
 import type { AppData, Entry, EntryLine, Season } from './types';
 
-/** משקל סגולי של שמן זית (ק"ג לליטר) */
+/** משקל סגולי של שמן זית (ק"ג לליטר) – רק להמרת נתונים ישנים שנשמרו בליטרים */
 export const OIL_DENSITY = 0.916;
-/** מיכל = 18 ק"ג שמן (בערך 20 ליטר) */
+/** מיכל = 18 ק"ג שמן */
 export const TANK_KG = 18;
 /** מע״מ בישראל (ברירת מחדל למסיק חדש) */
 export const DEFAULT_VAT = 18;
@@ -10,21 +10,19 @@ export const DEFAULT_VAT = 18;
 const n = (v: number | null | undefined) => (typeof v === 'number' && isFinite(v) ? v : 0);
 const has = (v: number | null | undefined): v is number => typeof v === 'number' && isFinite(v);
 
-export const oilKg = (liters: number | null) => n(liters) * OIL_DENSITY;
-
 /** אחוז שמן לפי משקל: ק"ג שמן / ק"ג זיתים */
-export function oilPct(kg: number | null, liters: number | null): number | null {
-  if (!has(kg) || !has(liters) || kg <= 0) return null;
-  return (oilKg(liters) / kg) * 100;
+export function oilPct(kg: number | null, oilKg: number | null): number | null {
+  if (!has(kg) || !has(oilKg) || kg <= 0) return null;
+  return (oilKg / kg) * 100;
 }
 
-export function autoTanks(liters: number | null): number | null {
-  if (!has(liters) || liters <= 0) return null;
+export function autoTanks(oilKg: number | null): number | null {
+  if (!has(oilKg) || oilKg <= 0) return null;
   // מעגלים למעלה (מיכל חלקי עדיין מיכל), עם סובלנות קטנה לעיגול
-  return Math.ceil(oilKg(liters) / TANK_KG - 0.02);
+  return Math.ceil(oilKg / TANK_KG - 0.02);
 }
 
-export const lineTanks = (l: EntryLine) => (has(l.tanksOverride) ? l.tanksOverride : autoTanks(l.liters));
+export const lineTanks = (l: EntryLine) => (has(l.tanksOverride) ? l.tanksOverride : autoTanks(l.oilKg));
 
 export function kgPerBin(kg: number | null, bins: number | null): number | null {
   if (!has(kg) || !has(bins) || bins <= 0) return null;
@@ -75,7 +73,7 @@ export type Totals = {
   days: number;
   bins: number;
   kg: number;
-  liters: number;
+  /** ק"ג שמן */
   oilKg: number;
   tanks: number;
   workerDays: number;
@@ -85,10 +83,11 @@ export type Totals = {
   pressNet: number;
   pressVat: number;
   totalCost: number;
-  /** אחוז שמן משוקלל (רק משורות שיש בהן גם ק"ג וגם ליטר) */
+  /** אחוז שמן משוקלל (רק משורות שיש בהן גם ק"ג זיתים וגם ק"ג שמן) */
   pct: number | null;
   kgPerBin: number | null;
-  costPerLiter: number | null;
+  /** עלות לק"ג שמן */
+  costPerOilKg: number | null;
   costPerKg: number | null;
   firstDate: string | null;
   lastDate: string | null;
@@ -96,9 +95,9 @@ export type Totals = {
 
 export function emptyTotals(): Totals {
   return {
-    entries: 0, days: 0, bins: 0, kg: 0, liters: 0, oilKg: 0, tanks: 0, workerDays: 0,
+    entries: 0, days: 0, bins: 0, kg: 0, oilKg: 0, tanks: 0, workerDays: 0,
     workersCost: 0, pressCost: 0, pressNet: 0, pressVat: 0, totalCost: 0, pct: null, kgPerBin: null,
-    costPerLiter: null, costPerKg: null, firstDate: null, lastDate: null,
+    costPerOilKg: null, costPerKg: null, firstDate: null, lastDate: null,
   };
 }
 
@@ -131,12 +130,11 @@ export function summarize(
     for (const l of lines) {
       t.bins += n(l.bins);
       t.kg += n(l.kg);
-      t.liters += n(l.liters);
-      t.oilKg += oilKg(l.liters);
+      t.oilKg += n(l.oilKg);
       t.tanks += n(lineTanks(l));
-      if (has(l.kg) && has(l.liters) && l.kg > 0) {
+      if (has(l.kg) && has(l.oilKg) && l.kg > 0) {
         pctKg += l.kg;
-        pctOil += oilKg(l.liters);
+        pctOil += l.oilKg;
       }
       if (has(l.kg) && has(l.bins) && l.bins > 0) {
         binKg += l.kg;
@@ -156,7 +154,7 @@ export function summarize(
   t.totalCost = t.workersCost + t.pressCost;
   t.pct = pctKg > 0 ? (pctOil / pctKg) * 100 : null;
   t.kgPerBin = binBins > 0 ? binKg / binBins : null;
-  t.costPerLiter = t.liters > 0 && t.totalCost > 0 ? t.totalCost / t.liters : null;
+  t.costPerOilKg = t.oilKg > 0 && t.totalCost > 0 ? t.totalCost / t.oilKg : null;
   t.costPerKg = t.kg > 0 && t.totalCost > 0 ? t.totalCost / t.kg : null;
   return t;
 }

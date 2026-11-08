@@ -20,13 +20,13 @@ const GROUPS: { id: GroupBy; name: string }[] = [
 
 type Group = { key: string; title: string; t: Totals };
 
-type Metric = 'pct' | 'kg' | 'liters' | 'kgPerBin' | 'costPerLiter';
+type Metric = 'pct' | 'kg' | 'oilKg' | 'kgPerBin' | 'costPerOilKg';
 const METRICS: { id: Metric; name: string; get: (t: Totals) => number | null; format: (v: number) => string }[] = [
   { id: 'pct', name: 'אחוז שמן', get: (t) => t.pct, format: (v) => fmtPct(v) },
   { id: 'kg', name: 'ק״ג זיתים', get: (t) => t.kg || null, format: (v) => `${fmt(v)} ק״ג` },
-  { id: 'liters', name: 'ליטר שמן', get: (t) => t.liters || null, format: (v) => `${fmt(v)} ל׳` },
+  { id: 'oilKg', name: 'ק״ג שמן', get: (t) => t.oilKg || null, format: (v) => `${fmt(v)} ק״ג` },
   { id: 'kgPerBin', name: 'ק״ג לדולב', get: (t) => t.kgPerBin, format: (v) => `${fmt(v)} ק״ג` },
-  { id: 'costPerLiter', name: 'עלות לליטר', get: (t) => t.costPerLiter, format: (v) => `${fmt(v, 1)} ₪` },
+  { id: 'costPerOilKg', name: 'עלות לק״ג שמן', get: (t) => t.costPerOilKg, format: (v) => `${fmt(v, 1)} ₪` },
 ];
 
 export default function Stats() {
@@ -118,13 +118,13 @@ export default function Stats() {
       ) : (
         <StatGrid>
           <Stat label="ק״ג זיתים" value={fmt(total.kg)} />
-          <Stat label="ליטר שמן" value={fmt(total.liters)} />
+          <Stat label="ק״ג שמן" value={fmt(total.oilKg)} />
           <Stat label="אחוז שמן" value={fmtPct(total.pct)} highlight />
           <Stat label="ק״ג לדולב" value={fmt(total.kgPerBin)} />
           <Stat label="ימי מסיק" value={fmt(total.days)} />
           <Stat label="ימי עבודה (פועלים)" value={fmt(total.workerDays, 1)} />
           <Stat label="עלות כוללת" value={fmtMoney(total.totalCost)} />
-          <Stat label="עלות לליטר" value={total.costPerLiter ? `${fmt(total.costPerLiter, 1)} ₪` : '—'} highlight />
+          <Stat label="עלות לק״ג שמן" value={total.costPerOilKg ? `${fmt(total.costPerOilKg, 1)} ₪` : '—'} highlight />
         </StatGrid>
       )}
 
@@ -163,15 +163,15 @@ export default function Stats() {
             <View style={{ height: 8, width: `${(g.t.kg / maxKg) * 100}%`, backgroundColor: C.accent, borderRadius: 4 }} />
           </View>
           <Row style={{ gap: 14 }}>
-            <Muted>{fmt(g.t.kg)} ק״ג</Muted>
-            <Muted>{fmt(g.t.liters)} ליטר</Muted>
+            <Muted>{fmt(g.t.kg)} ק״ג זיתים</Muted>
+            <Muted>{fmt(g.t.oilKg)} ק״ג שמן</Muted>
             <Muted>{fmt(g.t.bins)} דולבים</Muted>
             {g.t.kgPerBin ? <Muted>{fmt(g.t.kgPerBin)} ק״ג לדולב</Muted> : null}
           </Row>
           {g.t.totalCost > 0 ? (
             <Row style={{ gap: 14 }}>
               <Muted>💰 {fmtMoney(g.t.totalCost)}</Muted>
-              {g.t.costPerLiter ? <Muted>{fmt(g.t.costPerLiter, 1)} ₪ לליטר</Muted> : null}
+              {g.t.costPerOilKg ? <Muted>{fmt(g.t.costPerOilKg, 1)} ₪ לק״ג שמן</Muted> : null}
               {groupBy !== 'day' ? <Muted>{g.t.days} ימים</Muted> : null}
             </Row>
           ) : null}

@@ -8,14 +8,14 @@ const tot = (t: Totals) =>
     `ימי מסיק ${t.days}`,
     `דולבים ${fmt(t.bins)}`,
     `זיתים ${fmt(t.kg)} ק"ג`,
-    `שמן ${fmt(t.liters)} ליטר`,
+    `שמן ${fmt(t.oilKg)} ק"ג`,
     `מיכלים ${fmt(t.tanks)}`,
     `אחוז שמן ${t.pct == null ? 'לא ידוע' : fmt(t.pct, 1) + '%'}`,
     t.kgPerBin ? `ק"ג לדולב ${fmt(t.kgPerBin)}` : null,
     t.workersCost ? `עלות פועלים ${fmt(t.workersCost)} ₪ (${fmt(t.workerDays, 1)} ימי עבודה)` : null,
     t.pressCost ? `בית הבד ${fmt(t.pressCost)} ₪ כולל מע"מ (${fmt(t.pressNet)} לפני מע"מ)` : null,
     t.totalCost ? `עלות כוללת ${fmt(t.totalCost)} ₪` : null,
-    t.costPerLiter ? `עלות לליטר ${fmt(t.costPerLiter, 1)} ₪` : null,
+    t.costPerOilKg ? `עלות לק"ג שמן ${fmt(t.costPerOilKg, 1)} ₪` : null,
   ]
     .filter(Boolean)
     .join(' | ');
@@ -53,9 +53,9 @@ export function buildDataContext(data: AppData): string {
     for (const e of entries) {
       const lines = e.lines
         .map((l) => {
-          const pct = oilPct(l.kg, l.liters);
+          const pct = oilPct(l.kg, l.oilKg);
           const kb = kgPerBin(l.kg, l.bins);
-          return `${nameOf(data.varieties, l.varietyId)}: ${l.bins ?? '?'} דולבים, ${l.kg ?? '?'} ק"ג, ${l.liters ?? '?'} ליטר, ${lineTanks(l) ?? '?'} מיכלים` +
+          return `${nameOf(data.varieties, l.varietyId)}: ${l.bins ?? '?'} דולבים, ${l.kg ?? '?'} ק"ג זיתים, ${l.oilKg ?? '?'} ק"ג שמן, ${lineTanks(l) ?? '?'} מיכלים` +
             (pct != null ? `, ${fmt(pct, 1)}%` : '') + (kb ? `, ${fmt(kb)} ק"ג לדולב` : '');
         })
         .join('; ');
@@ -82,8 +82,8 @@ export function systemPrompt(data: AppData): string {
 - על שאלות כלליות (זנים, מועד קטיף, השקיה, מזיקים, איכות שמן, שוק) ענה מהידע שלך, בזהירות, והבהר כשמשהו תלוי באזור, בשנה או במומחה מקומי.
 
 הגדרות באפליקציה:
-- אחוז שמן מחושב לפי משקל: ליטר שמן × 0.916 ÷ ק"ג זיתים.
-- מיכל שמן = 18 ק"ג שמן (בערך 20 ליטר).
+- השמן נמדד בקילוגרמים (לא בליטרים). אחוז שמן = ק"ג שמן ÷ ק"ג זיתים.
+- מיכל שמן = 18 ק"ג שמן.
 - "דולב" = מכל איסוף זיתים מהשטח.
 - עלות בית הבד כוללת מע"מ. עלות כוללת = פועלים + בית הבד.
 - כשיש כמה סוגים באותו יום, עלויות היום מתחלקות בין הסוגים לפי המשקל.

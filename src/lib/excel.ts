@@ -27,9 +27,9 @@ export async function exportExcel(data: AppData, season?: Season) {
         'סוג זית': nameOf(data.varieties, l.varietyId),
         'דולבים': l.bins,
         'ק״ג זיתים': l.kg,
-        'ליטר שמן': l.liters,
+        'ק״ג שמן': l.oilKg,
         'מיכלים': lineTanks(l),
-        'אחוז שמן': r1(oilPct(l.kg, l.liters)),
+        'אחוז שמן': r1(oilPct(l.kg, l.oilKg)),
         'ק״ג לדולב': r1(kgPerBin(l.kg, l.bins)),
         // עלויות היום מופיעות רק בשורה הראשונה של היום כדי שסכום העמודה יהיה נכון
         'פועלים': i === 0 ? e.workers : null,
@@ -48,7 +48,7 @@ export async function exportExcel(data: AppData, season?: Season) {
     'ימי מסיק': t.days,
     'דולבים': t.bins,
     'ק״ג זיתים': r0(t.kg),
-    'ליטר שמן': r0(t.liters),
+    'ק״ג שמן': r0(t.oilKg),
     'מיכלים': t.tanks,
     'אחוז שמן': r1(t.pct),
     'ק״ג לדולב': r1(t.kgPerBin),
@@ -58,7 +58,7 @@ export async function exportExcel(data: AppData, season?: Season) {
     'מע״מ': r0(t.pressVat),
     'בית הבד כולל מע״מ': r0(t.pressCost),
     'עלות כוללת (כולל מע״מ)': r0(t.totalCost),
-    'עלות לליטר': r1(t.costPerLiter),
+    'עלות לק״ג שמן': r1(t.costPerOilKg),
   });
 
   const bySeason = seasons.map((s) => summaryRow('מסיק', s.name, summarize(data, entries.filter((e) => e.seasonId === s.id))));

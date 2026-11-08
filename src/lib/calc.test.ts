@@ -8,22 +8,24 @@ const season: Season = { id: 's', name: 'מסיק 2026', pricePerKg: 0.5, priceP
 const e1: Entry = {
   id: 'e1', seasonId: 's', date: '2026-10-20', plotId: 'p12', workers: 4, costPerWorker: 400, notes: '', pressPaidOverride: null, pressPaidIncludesVat: true,
   lines: [
-    { varietyId: 'barnea', bins: 10, kg: 4000, liters: 800, tanksOverride: null },
-    { varietyId: 'picual', bins: 5, kg: 1000, liters: 200, tanksOverride: 11 },
+    { varietyId: 'barnea', bins: 10, kg: 4000, oilKg: 733, tanksOverride: null },
+    { varietyId: 'picual', bins: 5, kg: 1000, oilKg: 183, tanksOverride: 11 },
   ],
 };
 const e2: Entry = { ...e1, id: 'e2', date: '2026-10-22', plotId: 'p200', pressPaidOverride: 1000,
-  lines: [{ varietyId: 'barnea', bins: 2, kg: 1000, liters: 150, tanksOverride: null }] };
+  lines: [{ varietyId: 'barnea', bins: 2, kg: 1000, oilKg: 137, tanksOverride: null }] };
 
-test('oil percent is by weight', () => {
-  assert.equal(oilPct(1000, 200)!.toFixed(2), '18.32');
+test('oil percent = oil kg / olive kg', () => {
+  assert.equal(oilPct(1000, 183), 18.3);
   assert.equal(oilPct(0, 200), null);
   assert.equal(oilPct(1000, null), null);
 });
 
 test('tanks: 18kg oil each, rounded up', () => {
-  assert.equal(autoTanks(800), 41); // 732.8kg / 18 = 40.7
-  assert.equal(autoTanks(19.65), 1);
+  assert.equal(autoTanks(733), 41); // 733 / 18 = 40.7
+  assert.equal(autoTanks(18), 1);
+  assert.equal(autoTanks(36.1), 2); // סובלנות קטנה לעיגול
+  assert.equal(autoTanks(37), 3);
   assert.equal(autoTanks(null), null);
 });
 
@@ -55,7 +57,7 @@ test('summarize totals and per variety cost split', () => {
   const d = { seasons: [season] };
   const t = summarize(d, [e1, e2]);
   assert.equal(t.kg, 6000);
-  assert.equal(t.liters, 1150);
+  assert.equal(t.oilKg, 733 + 183 + 137);
   assert.equal(t.days, 2);
   assert.equal(t.workersCost, 3200);
   assert.equal(t.pressCost, 3020 + 1000);

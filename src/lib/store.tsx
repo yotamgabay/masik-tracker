@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { loadRaw, saveRaw } from './storage';
 import type { AppData, Entry, Named, Season } from './types';
 import { uid } from './format';
-import { DEFAULT_VAT } from './calc';
+import { DEFAULT_VAT, OIL_DENSITY } from './calc';
 
 const KEY = 'masik-data-v1';
 
@@ -33,7 +33,15 @@ export function normalizeData(raw: unknown): AppData {
       notes: e.notes ?? '',
       pressPaidOverride: e.pressPaidOverride ?? null,
       pressPaidIncludesVat: e.pressPaidIncludesVat ?? true,
-      lines: e.lines ?? [],
+      // גרסאות ראשונות שמרו ליטרים – ממירים לק"ג שמן
+      lines: (e.lines ?? []).map((l) => {
+        const old = l as typeof l & { liters?: number | null };
+        const { liters, ...rest } = old;
+        return {
+          ...rest,
+          oilKg: old.oilKg !== undefined ? old.oilKg : liters != null ? Math.round(liters * OIL_DENSITY * 10) / 10 : null,
+        };
+      }),
     })),
     lastCostPerWorker: d.lastCostPerWorker ?? null,
   };

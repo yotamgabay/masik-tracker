@@ -37,7 +37,7 @@ export default function Home() {
                 {t.days > 0 ? (
                   <Row style={{ gap: 18 }}>
                     <Big label="ק״ג זיתים" value={fmt(t.kg)} />
-                    <Big label="ליטר שמן" value={fmt(t.liters)} />
+                    <Big label="ק״ג שמן" value={fmt(t.oilKg)} />
                     <Big label="אחוז שמן" value={fmtPct(t.pct)} />
                   </Row>
                 ) : null}

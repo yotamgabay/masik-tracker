@@ -15,7 +15,7 @@ export function seasonSummaryText(data: AppData, season: Season): string {
   L.push('');
   L.push('*סה״כ*');
   L.push(`• זיתים: ${fmt(t.kg)} ק״ג (${fmt(t.bins)} דולבים)`);
-  L.push(`• שמן: ${fmt(t.liters)} ליטר (${fmt(t.tanks)} מיכלים)`);
+  L.push(`• שמן: ${fmt(t.oilKg)} ק״ג (${fmt(t.tanks)} מיכלים)`);
   L.push(`• אחוז שמן ממוצע: ${fmtPct(t.pct)}`);
   if (t.kgPerBin) L.push(`• ממוצע לדולב: ${fmt(t.kgPerBin)} ק״ג`);
 
@@ -25,7 +25,7 @@ export function seasonSummaryText(data: AppData, season: Season): string {
     L.push('*לפי סוג זית*');
     for (const vid of varIds) {
       const v = summarize(data, entries, (l) => l.varietyId === vid);
-      L.push(`• ${nameOf(data.varieties, vid)}: ${fmt(v.kg)} ק״ג ← ${fmt(v.liters)} ליטר (${fmtPct(v.pct)})`);
+      L.push(`• ${nameOf(data.varieties, vid)}: ${fmt(v.kg)} ק״ג זיתים ← ${fmt(v.oilKg)} ק״ג שמן (${fmtPct(v.pct)})`);
     }
   }
 
@@ -35,7 +35,7 @@ export function seasonSummaryText(data: AppData, season: Season): string {
     L.push('*לפי חלקה*');
     for (const pid of plotIds) {
       const p = summarize(data, entries.filter((e) => e.plotId === pid));
-      L.push(`• ${nameOf(data.plots, pid)}: ${fmt(p.kg)} ק״ג ← ${fmt(p.liters)} ליטר (${fmtPct(p.pct)})`);
+      L.push(`• ${nameOf(data.plots, pid)}: ${fmt(p.kg)} ק״ג זיתים ← ${fmt(p.oilKg)} ק״ג שמן (${fmtPct(p.pct)})`);
     }
   }
 
@@ -48,7 +48,7 @@ export function seasonSummaryText(data: AppData, season: Season): string {
       L.push(`   (${fmtMoney(t.pressNet)} + מע״מ ${fmtMoney(t.pressVat)})`);
     }
     L.push(`• סה״כ: ${fmtMoney(t.totalCost)}`);
-    if (t.costPerLiter) L.push(`• עלות לליטר שמן: ${fmt(t.costPerLiter, 1)} ₪`);
+    if (t.costPerOilKg) L.push(`• עלות לק״ג שמן: ${fmt(t.costPerOilKg, 1)} ₪`);
   }
   return L.join('\n');
 }
@@ -63,8 +63,8 @@ export function entrySummaryText(data: AppData, e: Entry): string {
     L.push(`*${nameOf(data.varieties, l.varietyId)}*`);
     if (l.bins != null) L.push(`• ${fmt(l.bins)} דולבים${kgPerBin(l.kg, l.bins) ? ` (${fmt(kgPerBin(l.kg, l.bins))} ק״ג לדולב)` : ''}`);
     if (l.kg != null) L.push(`• ${fmt(l.kg)} ק״ג זיתים`);
-    if (l.liters != null) L.push(`• ${fmt(l.liters)} ליטר שמן (${fmt(lineTanks(l))} מיכלים)`);
-    const p = oilPct(l.kg, l.liters);
+    if (l.oilKg != null) L.push(`• ${fmt(l.oilKg)} ק״ג שמן (${fmt(lineTanks(l))} מיכלים)`);
+    const p = oilPct(l.kg, l.oilKg);
     if (p != null) L.push(`• אחוז שמן: ${fmtPct(p)}`);
   }
   const wc = workersCost(e);

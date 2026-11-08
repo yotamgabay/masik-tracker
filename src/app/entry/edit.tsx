@@ -10,13 +10,13 @@ import { nameOf, useData } from '../../lib/store';
 import { entrySummaryText } from '../../lib/summary';
 import type { Entry, EntryLine } from '../../lib/types';
 
-type LineForm = { varietyId: string; bins: string; kg: string; liters: string; tanks: string };
+type LineForm = { varietyId: string; bins: string; kg: string; oilKg: string; tanks: string };
 
 const toLine = (f: LineForm): EntryLine => ({
   varietyId: f.varietyId,
   bins: parseNum(f.bins),
   kg: parseNum(f.kg),
-  liters: parseNum(f.liters),
+  oilKg: parseNum(f.oilKg),
   tanksOverride: parseNum(f.tanks),
 });
 
@@ -39,7 +39,7 @@ export default function EntryEdit() {
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [lines, setLines] = useState<LineForm[]>(
     existing?.lines.map((l) => ({
-      varietyId: l.varietyId, bins: numToStr(l.bins), kg: numToStr(l.kg), liters: numToStr(l.liters), tanks: numToStr(l.tanksOverride),
+      varietyId: l.varietyId, bins: numToStr(l.bins), kg: numToStr(l.kg), oilKg: numToStr(l.oilKg), tanks: numToStr(l.tanksOverride),
     })) ?? [],
   );
   const [adding, setAdding] = useState<null | 'varieties' | 'plots'>(null);
@@ -51,7 +51,7 @@ export default function EntryEdit() {
     setLines((ls) =>
       ls.some((l) => l.varietyId === vid)
         ? ls.filter((l) => l.varietyId !== vid)
-        : [...ls, { varietyId: vid, bins: '', kg: '', liters: '', tanks: '' }],
+        : [...ls, { varietyId: vid, bins: '', kg: '', oilKg: '', tanks: '' }],
     );
   const setLine = (vid: string, patch: Partial<LineForm>) =>
     setLines((ls) => ls.map((l) => (l.varietyId === vid ? { ...l, ...patch } : l)));
@@ -74,7 +74,7 @@ export default function EntryEdit() {
   const autoPress = autoPressCost(draft, season);
   const pb = pressBreakdown(draft, season);
   const press = pb?.gross ?? null;
-  const totalLiters = draft.lines.reduce((a, l) => a + (l.liters ?? 0), 0);
+  const totalOil = draft.lines.reduce((a, l) => a + (l.oilKg ?? 0), 0);
   const totalKg = draft.lines.reduce((a, l) => a + (l.kg ?? 0), 0);
   const totalCost = (wc ?? 0) + (press ?? 0);
 
@@ -140,8 +140,8 @@ export default function EntryEdit() {
 
       {lines.map((l) => {
         const line = toLine(l);
-        const pct = oilPct(line.kg, line.liters);
-        const auto = autoTanks(line.liters);
+        const pct = oilPct(line.kg, line.oilKg);
+        const auto = autoTanks(line.oilKg);
         return (
           <Card key={l.varietyId} style={{ borderColor: C.primary, borderWidth: 1.5 }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -152,10 +152,10 @@ export default function EntryEdit() {
             </Row>
             <Row>
               <Field label="דולבים מהשטח" value={l.bins} onChange={(v) => setLine(l.varietyId, { bins: v })} />
-              <Field label="משקל בבית הבד" suffix="ק״ג" value={l.kg} onChange={(v) => setLine(l.varietyId, { kg: v })} />
+              <Field label="משקל זיתים בבית הבד" suffix="ק״ג" value={l.kg} onChange={(v) => setLine(l.varietyId, { kg: v })} />
             </Row>
             <Row>
-              <Field label="שמן שיצא" suffix="ליטר" value={l.liters} onChange={(v) => setLine(l.varietyId, { liters: v })} />
+              <Field label="שמן שיצא" suffix="ק״ג" value={l.oilKg} onChange={(v) => setLine(l.varietyId, { oilKg: v })} />
               <Field
                 label="מיכלים"
                 value={l.tanks}
@@ -220,16 +220,16 @@ export default function EntryEdit() {
       <Card style={{ backgroundColor: C.accentSoft, borderColor: '#EBD98F' }}>
         <H>סיכום היום</H>
         <Row>
-          <Computed label="סה״כ ק״ג" value={fmt(totalKg)} />
-          <Computed label="סה״כ ליטר" value={fmt(totalLiters)} />
+          <Computed label="סה״כ ק״ג זיתים" value={fmt(totalKg)} />
+          <Computed label="סה״כ ק״ג שמן" value={fmt(totalOil)} />
         </Row>
         <Row>
           <Computed label="סה״כ מיכלים" value={fmt(draft.lines.reduce((a, x) => a + (lineTanks(x) ?? 0), 0))} />
-          <Computed label="אחוז שמן" value={fmtPct(totalKg > 0 && totalLiters > 0 ? oilPct(totalKg, totalLiters) : null)} />
+          <Computed label="אחוז שמן" value={fmtPct(totalKg > 0 && totalOil > 0 ? oilPct(totalKg, totalOil) : null)} />
         </Row>
         <Row>
           <Computed label="עלות כוללת (כולל מע״מ)" value={fmtMoney(totalCost || null)} />
-          <Computed label="עלות לליטר" value={totalCost && totalLiters ? `${fmt(totalCost / totalLiters, 1)} ₪` : '—'} />
+          <Computed label="עלות לק״ג שמן" value={totalCost && totalOil ? `${fmt(totalCost / totalOil, 1)} ₪` : '—'} />
         </Row>
       </Card>
 
@@ -257,7 +257,7 @@ export default function EntryEdit() {
         onSave={(name) => {
           const item = addNamed(adding!, name);
           if (adding === 'plots') setPlotId(item.id);
-          else setLines((ls) => [...ls, { varietyId: item.id, bins: '', kg: '', liters: '', tanks: '' }]);
+          else setLines((ls) => [...ls, { varietyId: item.id, bins: '', kg: '', oilKg: '', tanks: '' }]);
         }}
       />
     </Screen>

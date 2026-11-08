@@ -24,7 +24,7 @@ export default function SeasonScreen() {
 
       <StatGrid>
         <Stat label="ק״ג זיתים" value={fmt(t.kg)} />
-        <Stat label="ליטר שמן" value={fmt(t.liters)} />
+        <Stat label="ק״ג שמן" value={fmt(t.oilKg)} />
         <Stat label="אחוז שמן ממוצע" value={fmtPct(t.pct)} highlight />
         <Stat label="מיכלים" value={fmt(t.tanks)} />
         <Stat label="דולבים" value={fmt(t.bins)} />
@@ -32,7 +32,7 @@ export default function SeasonScreen() {
         <Stat label="עלות פועלים" value={fmtMoney(t.workersCost)} />
         <Stat label="בית הבד (כולל מע״מ)" value={fmtMoney(t.pressCost)} />
         <Stat label="עלות כוללת" value={fmtMoney(t.totalCost)} />
-        <Stat label="עלות לליטר" value={t.costPerLiter ? `${fmt(t.costPerLiter, 1)} ₪` : '—'} highlight />
+        <Stat label="עלות לק״ג שמן" value={t.costPerOilKg ? `${fmt(t.costPerOilKg, 1)} ₪` : '—'} highlight />
       </StatGrid>
 
       <Btn title="📲 שלח סיכום בוואטסאפ" variant="whatsapp" onPress={() => sendToWhatsApp(seasonSummaryText(data, season))} />
@@ -58,7 +58,7 @@ export default function SeasonScreen() {
       {entries.length === 0 ? <Muted>עוד לא נוספו ימי מסיק. לחץ על ״יום מסיק חדש״ למטה.</Muted> : null}
       {entries.map((e) => {
         const kg = e.lines.reduce((a, l) => a + (l.kg ?? 0), 0);
-        const liters = e.lines.reduce((a, l) => a + (l.liters ?? 0), 0);
+        const oil = e.lines.reduce((a, l) => a + (l.oilKg ?? 0), 0);
         const cost = (workersCost(e) ?? 0) + (pressCost(e, season) ?? 0);
         return (
           <Pressable key={e.id} onPress={() => router.push(`/entry/edit?seasonId=${season.id}&id=${e.id}`)}>
@@ -72,12 +72,12 @@ export default function SeasonScreen() {
                 </Row>
                 {e.lines.map((l) => (
                   <Text key={l.varietyId} style={{ fontSize: 16, color: C.text }}>
-                    • {nameOf(data.varieties, l.varietyId)}: {fmt(l.kg)} ק״ג → {fmt(l.liters)} ליטר
-                    <Text style={{ color: C.primary, fontWeight: '700' }}>  {fmtPct(oilPct(l.kg, l.liters))}</Text>
+                    • {nameOf(data.varieties, l.varietyId)}: {fmt(l.kg)} ק״ג זיתים → {fmt(l.oilKg)} ק״ג שמן
+                    <Text style={{ color: C.primary, fontWeight: '700' }}>  {fmtPct(oilPct(l.kg, l.oilKg))}</Text>
                   </Text>
                 ))}
                 <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
-                  <Muted>סה״כ {fmt(kg)} ק״ג · {fmt(liters)} ליטר</Muted>
+                  <Muted>סה״כ {fmt(kg)} ק״ג זיתים · {fmt(oil)} ק״ג שמן</Muted>
                   {e.workers ? <Muted>👷 {fmt(e.workers)} פועלים</Muted> : null}
                   {cost > 0 ? <Muted>💰 {fmtMoney(cost)}</Muted> : null}
                 </View>

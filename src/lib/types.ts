@@ -21,8 +21,9 @@ export type EntryLine = {
   varietyId: string;
   bins: number | null;
   kg: number | null;
-  liters: number | null;
-  /** אם ריק – מחושב אוטומטית מהליטרים */
+  /** ק"ג שמן שיצא מבית הבד */
+  oilKg: number | null;
+  /** אם ריק – מחושב אוטומטית מק"ג השמן */
   tanksOverride: number | null;
 };
 
