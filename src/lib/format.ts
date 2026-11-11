@@ -47,3 +47,23 @@ export function parseNum(s: string): number | null {
 export const numToStr = (v: number | null | undefined) => (typeof v === 'number' && isFinite(v) ? String(v) : '');
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/** שנה מתוך שם המסיק, למשל "מסיק 2018" → 2018 */
+export function yearFromName(name: string): number | null {
+  const m = name.match(/(?:^|\D)((?:19|20)\d{2})(?!\d)/);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * תאריך ברירת מחדל ליום מסיק חדש:
+ * - מסיק של השנה הנוכחית (או בלי שנה בשם) → היום
+ * - מסיק של שנה אחרת → היום האחרון שכבר הוזן במסיק, ואם אין – 1 באוקטובר של אותה שנה
+ */
+export function defaultEntryDate(seasonName: string, seasonDates: string[], today = todayISO()): string {
+  const year = yearFromName(seasonName);
+  if (year == null || String(year) === today.slice(0, 4)) return today;
+  const last = [...seasonDates].sort().pop();
+  return last ?? `${year}-10-01`;
+}
+
+export const HEB_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];

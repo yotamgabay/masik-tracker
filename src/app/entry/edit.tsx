@@ -4,7 +4,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Btn, Card, Chips, Computed, Field, H, MoneyLine, Muted, NameModal, Row, Screen, Segmented, confirm, notify } from '../../components/ui';
 import { C } from '../../components/theme';
 import { autoPressCost, autoTanks, kgPerBin, lineTanks, oilPct, pressBreakdown, workersCost } from '../../lib/calc';
-import { addDays, fmt, fmtDate, fmtMoney, fmtPct, numToStr, parseNum, todayISO, uid, weekday } from '../../lib/format';
+import { addDays, defaultEntryDate, fmt, fmtDate, fmtMoney, fmtPct, numToStr, parseNum, todayISO, uid, weekday } from '../../lib/format';
+import { DatePicker } from '../../components/DatePicker';
 import { sendToWhatsApp } from '../../lib/share';
 import { nameOf, useData } from '../../lib/store';
 import { entrySummaryText } from '../../lib/summary';
@@ -30,7 +31,12 @@ export default function EntryEdit() {
     [], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  const [date, setDate] = useState(existing?.date ?? todayISO());
+  const [date, setDate] = useState(
+    () =>
+      existing?.date ??
+      defaultEntryDate(season?.name ?? '', data.entries.filter((e) => e.seasonId === seasonId).map((e) => e.date)),
+  );
+  const [pickingDate, setPickingDate] = useState(false);
   const [plotId, setPlotId] = useState(existing?.plotId ?? lastInSeason?.plotId ?? '');
   const [workers, setWorkers] = useState(numToStr(existing?.workers));
   const [costPerWorker, setCostPerWorker] = useState(numToStr(existing ? existing.costPerWorker : data.lastCostPerWorker));
@@ -105,13 +111,19 @@ export default function EntryEdit() {
         <H>📅 תאריך</H>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Btn title="יום קודם" small variant="secondary" onPress={() => setDate(addDays(date, -1))} />
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: C.text }}>{fmtDate(date)}</Text>
+          <Pressable
+            onPress={() => setPickingDate(true)}
+            accessibilityRole="button"
+            accessibilityLabel="בחירת תאריך"
+            style={{ alignItems: 'center', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: C.primary, backgroundColor: C.primarySoft }}
+          >
+            <Text style={{ fontSize: 22, fontWeight: '800', color: C.text }}>📅 {fmtDate(date)}</Text>
             <Text style={{ fontSize: 15, color: C.muted }}>יום {weekday(date)}{date === todayISO() ? ' (היום)' : ''}</Text>
-          </View>
+          </Pressable>
           <Btn title="יום הבא" small variant="secondary" onPress={() => setDate(addDays(date, 1))} />
         </View>
-        {date !== todayISO() ? <Btn title="חזור להיום" small variant="ghost" onPress={() => setDate(todayISO())} /> : null}
+        <Muted>לחץ על התאריך כדי לבחור מלוח שנה</Muted>
+        <DatePicker visible={pickingDate} value={date} onChange={setDate} onClose={() => setPickingDate(false)} />
       </Card>
 
       {/* חלקה */}

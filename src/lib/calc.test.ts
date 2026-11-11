@@ -77,3 +77,16 @@ test('format helpers', () => {
   assert.equal(parseNum(''), null);
   assert.equal(addDays('2026-10-31', 1), '2026-11-01');
 });
+
+test('default date for a new harvest day', async () => {
+  const { yearFromName, defaultEntryDate } = await import('./format.ts');
+  assert.equal(yearFromName('מסיק 2018'), 2018);
+  assert.equal(yearFromName('2021 חלקה 12'), 2021);
+  assert.equal(yearFromName('מסיק'), null);
+  assert.equal(yearFromName('מסיק 12345'), null);
+  const today = '2026-11-11';
+  assert.equal(defaultEntryDate('מסיק 2026', [], today), today);
+  assert.equal(defaultEntryDate('המסיק שלי', ['2025-10-01'], today), today);
+  assert.equal(defaultEntryDate('מסיק 2018', [], today), '2018-10-01');
+  assert.equal(defaultEntryDate('מסיק 2018', ['2018-10-20', '2018-11-03', '2018-10-25'], today), '2018-11-03');
+});
