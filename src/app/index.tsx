@@ -7,11 +7,20 @@ import { fmt, fmtDate, fmtPct } from '../lib/format';
 import { useData } from '../lib/store';
 
 export default function Home() {
-  const { data } = useData();
+  const { data, problem } = useData();
   const seasons = [...data.seasons].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
   return (
     <Screen>
+      {problem ? (
+        <Card style={{ backgroundColor: C.dangerSoft, borderColor: '#F2C4BF' }}>
+          <H>⚠️ לא הצלחתי לקרוא את הנתונים</H>
+          <Muted>
+            הנתונים לא נמחקו. כדי לא לדרוס אותם, האפליקציה לא שומרת שום שינוי עכשיו. אפשר לשחזר גיבוי אוטומטי בהגדרות, או לשלוח את הנתונים לבדיקה.
+          </Muted>
+          <Btn title="⚙️ להגדרות" variant="danger" onPress={() => router.push('/settings')} />
+        </Card>
+      ) : null}
       <Btn title="➕ מסיק חדש" onPress={() => router.push('/season/edit')} />
 
       {seasons.length === 0 ? (

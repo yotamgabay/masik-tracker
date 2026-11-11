@@ -7,13 +7,26 @@ import { loadApiKey, saveApiKey } from '../lib/aiKey';
 import { exportExcel } from '../lib/excel';
 import { pickTextFile, shareFile } from '../lib/files';
 import { todayISO } from '../lib/format';
+import { listBackups, UNREADABLE_KEY } from '../lib/safety';
+import { loadRaw } from '../lib/storage';
 import { isNamedInUse, normalizeData, useData } from '../lib/store';
 import type { Named } from '../lib/types';
 
 type Kind = 'varieties' | 'plots';
 
 export default function Settings() {
-  const { data, addNamed, renameNamed, setArchived, deleteNamed, replaceAll } = useData();
+  const { data, problem, addNamed, renameNamed, setArchived, deleteNamed, replaceAll } = useData();
+  const [backups] = useState(() =>
+    listBackups().map((b) => {
+      try {
+        const d = normalizeData(JSON.parse(b.raw));
+        return { ...b, summary: `${d.seasons.length} מסיקים, ${d.entries.length} ימי מסיק`, parsed: d };
+      } catch {
+        return { ...b, summary: 'לא ניתן לקריאה', parsed: null };
+      }
+    }),
+  );
+  const [showBackups, setShowBackups] = useState(false);
   const [modal, setModal] = useState<null | { kind: Kind; item?: Named }>(null);
   const [apiKey, setApiKey] = useState(loadApiKey);
   const [keyStatus, setKeyStatus] = useState<string>(loadApiKey() ? 'מפתח שמור' : '');
@@ -86,6 +99,50 @@ export default function Settings() {
         <Btn title="📤 שלח קובץ גיבוי" onPress={backup} />
         <Btn title="📥 שחזר מקובץ גיבוי" variant="secondary" onPress={restore} />
         <Btn title="📊 ייצוא כל המסיקים לאקסל" variant="secondary" onPress={() => exportExcel(data).catch((e) => notify('הייצוא נכשל', String(e)))} />
+      </Card>
+
+      <Card>
+        <H>🛟 גיבויים אוטומטיים בטלפון</H>
+        <Muted>
+          האפליקציה שומרת לבד עותק של כל הנתונים פעם ביום (14 הימים האחרונים), ועותק של הנתונים המקוריים לפני כל עדכון גרסה. אם משהו השתבש, אפשר לחזור לאחד מהם.
+        </Muted>
+        {problem === 'unreadable' ? (
+          <Btn
+            title="📤 שלח את הנתונים שלא נקראו (לבדיקה)"
+            variant="danger"
+            onPress={() => {
+              const raw = loadRaw(UNREADABLE_KEY);
+              if (raw) shareFile(`נתוני מסיק לבדיקה ${todayISO()}.json`, raw, 'application/json').catch(() => {});
+            }}
+          />
+        ) : null}
+        {backups.length === 0 ? <Muted>עדיין אין גיבויים אוטומטיים.</Muted> : null}
+        {backups.length > 0 && !showBackups ? (
+          <Btn title={`הצג גיבויים (${backups.length})`} variant="secondary" onPress={() => setShowBackups(true)} />
+        ) : null}
+        {showBackups
+          ? backups.map((b) => (
+              <View key={b.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, color: C.text, fontWeight: '600' }}>{b.label}</Text>
+                  <Muted>{b.summary}</Muted>
+                </View>
+                {b.parsed ? (
+                  <Small
+                    title="שחזר"
+                    onPress={() =>
+                      confirm(
+                        'לשחזר את הגיבוי?',
+                        `${b.label}: ${b.summary}. הנתונים הנוכחיים יוחלפו (ועותק שלהם יישמר כ"לפני השחזור האחרון").`,
+                        () => { replaceAll(b.parsed!); notify('השחזור הושלם ✅'); },
+                        'שחזר',
+                      )
+                    }
+                  />
+                ) : null}
+              </View>
+            ))
+          : null}
       </Card>
 
       <Card>

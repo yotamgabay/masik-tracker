@@ -1,10 +1,12 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { Alert, Platform } from 'react-native';
 import { loadRaw, saveRaw } from './storage';
+import { BEFORE_RESTORE_KEY, DATA_KEY, UNREADABLE_KEY, dailySnapshot, keepCopy, preMigrationSnapshot } from './safety';
 import type { AppData, Entry, Named, Season } from './types';
 import { uid } from './format';
 import { DEFAULT_VAT, OIL_DENSITY } from './calc';
 
-const KEY = 'masik-data-v1';
+const KEY = DATA_KEY;
 
 function defaultData(): AppData {
   return {
@@ -47,18 +49,42 @@ export function normalizeData(raw: unknown): AppData {
   };
 }
 
-function load(): AppData {
+type Loaded = { data: AppData; problem: null | 'storage' | 'unreadable' };
+
+/**
+ * טעינה בטוחה: אם משהו נכשל, לא מתחילים "מאפס" על גבי הנתונים הקיימים.
+ * במקרה כזה השמירה נחסמת, כך שהנתונים המקוריים נשארים כמו שהם.
+ */
+function load(): Loaded {
+  let raw: string | null;
   try {
-    const raw = loadRaw(KEY);
-    if (raw) return normalizeData(JSON.parse(raw));
+    raw = loadRaw(KEY);
   } catch (e) {
-    console.warn('failed to load data', e);
+    console.warn('failed to read storage', e);
+    return { data: defaultData(), problem: 'storage' };
   }
-  return defaultData();
+  if (!raw) return { data: defaultData(), problem: null }; // התקנה חדשה
+  dailySnapshot(raw);
+  try {
+    const data = normalizeData(JSON.parse(raw));
+    if (JSON.stringify(data) !== raw) preMigrationSnapshot(raw);
+    return { data, problem: null };
+  } catch (e) {
+    console.warn('failed to parse data', e);
+    keepCopy(UNREADABLE_KEY, raw);
+    return { data: defaultData(), problem: 'unreadable' };
+  }
 }
+
+const warn = (title: string, msg: string) => {
+  if (Platform.OS === 'web') globalThis.alert?.(`${title}\n${msg}`);
+  else Alert.alert(title, msg);
+};
 
 type Ctx = {
   data: AppData;
+  /** אם לא null – הנתונים השמורים לא נקראו, והשמירה חסומה כדי לא לדרוס אותם */
+  problem: Loaded['problem'];
   saveSeason: (s: Season) => void;
   deleteSeason: (id: string) => void;
   saveEntry: (e: Entry) => void;
@@ -73,19 +99,33 @@ type Ctx = {
 const DataContext = createContext<Ctx | null>(null);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<AppData>(load);
+  const [initial] = useState(load);
+  const [data, setData] = useState<AppData>(initial.data);
   const ref = useRef(data);
+  const [problem, setProblem] = useState(initial.problem);
 
-  const update = useCallback((fn: (d: AppData) => AppData) => {
+  const update = useCallback((fn: (d: AppData) => AppData, force = false) => {
+    if (problem && !force) {
+      warn('השמירה חסומה', 'לא הצלחתי לקרוא את הנתונים השמורים, ולכן אני לא שומר כלום כדי לא לדרוס אותם. הנתונים לא נמחקו.');
+      return;
+    }
     const next = fn(ref.current);
+    try {
+      saveRaw(KEY, JSON.stringify(next));
+    } catch (e) {
+      console.warn('save failed', e);
+      warn('השמירה נכשלה', 'השינוי האחרון לא נשמר. נסה שוב.');
+      return;
+    }
     ref.current = next;
-    saveRaw(KEY, JSON.stringify(next));
     setData(next);
-  }, []);
+    if (force) setProblem(null);
+  }, [problem]);
 
   const ctx = useMemo<Ctx>(
     () => ({
       data,
+      problem,
       saveSeason: (s) =>
         update((d) => ({
           ...d,
@@ -110,9 +150,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setArchived: (kind, id, archived) =>
         update((d) => ({ ...d, [kind]: d[kind].map((x) => (x.id === id ? { ...x, archived } : x)) })),
       deleteNamed: (kind, id) => update((d) => ({ ...d, [kind]: d[kind].filter((x) => x.id !== id) })),
-      replaceAll: (nd) => update(() => nd),
+      replaceAll: (nd) => {
+        // לפני שחזור שומרים עותק של המצב הנוכחי, כדי שאפשר יהיה לחזור אחורה
+        // (גם כשהנתונים לא נקראו – שחזור הוא פעולה מפורשת, והמקור כבר שמור בצד)
+        try { keepCopy(BEFORE_RESTORE_KEY, loadRaw(KEY)); } catch {}
+        update(() => nd, true);
+      },
     }),
-    [data, update],
+    [data, update, problem],
   );
 
   return <DataContext.Provider value={ctx}>{children}</DataContext.Provider>;
